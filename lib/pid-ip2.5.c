@@ -353,14 +353,7 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt(void) {
                 }
             }
         }
-        if (pidObjs[0].mode == 0)
-        {
         pidSetControl();
-        } else if (pidObjs[0].mode == 1)
-        {
-            tiHSetDC(1, pidObjs[0].pwmDes);
-            tiHSetDC(2, pidObjs[1].pwmDes);
-        }
 
         if(pidObjs[0].onoff) {
             //telemGetPID();
@@ -424,7 +417,7 @@ void checkSwapBuff(int j){
 
  // select either back emf or backwd diff for vel est
 
-#define VEL_BEMF 0
+#define VEL_BEMF 1
 
 /* update state variables including motor position and velocity */
 
@@ -533,11 +526,13 @@ void pidSetControl()
             UpdatePID(&(pidObjs[j]));
        } // end of for(j)
 
-		if(pidObjs[0].onoff && pidObjs[1].onoff)  // both motors on to run
+		if(pidObjs[0].onoff && pidObjs[1].onoff && pidObjs[0].mode == 0)  // both motors on to run
 		{
  		   tiHSetDC(1, pidObjs[0].output); 
 		   tiHSetDC(2, pidObjs[1].output); 
-		} 
+                } else if(pidObjs[0].onoff && pidObjs[1].onoff && pidObjs[0].mode == 1){
+                   tiHSetDC(1, pidObjs[0].pwmDes);
+		   tiHSetDC(2, pidObjs[1].pwmDes); }
 		else // turn off motors if PID loop is off
 		{ tiHSetDC(1,0); tiHSetDC(2,0); }	
 }

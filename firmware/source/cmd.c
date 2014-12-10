@@ -141,7 +141,6 @@ unsigned char cmdStartTimedRun(unsigned char type, unsigned char status, unsigne
         checkSwapBuff(i);
         pidOn(i);
     }
-    pidObjs[0].mode = 0;
     pidStartTimedTrial(run_time);
 
     return 1;
@@ -194,8 +193,6 @@ unsigned char cmdSetThrustOpenLoop(unsigned char type, unsigned char status, uns
  } 
 
  unsigned char cmdSetMotorMode(unsigned char type, unsigned char status, unsigned char length, unsigned char *frame) {
-
-
     int thrust1 = frame[0] + (frame[1] << 8);
     int thrust2 = frame[2] + (frame[3] << 8);
 
@@ -236,6 +233,7 @@ unsigned char cmdSetVelProfile(unsigned char type, unsigned char status, unsigne
     int idx = 0, i = 0;
     // Packet structure [Period, delta[NUM_VELS], FLAG, Period, delta[NUM_VELS], FLAG]
     period = frame[idx] + (frame[idx + 1]<<8);
+    pidObjs[0].mode = 0;
     idx+=2;
     for(i = 0; i < NUM_VELS; i ++) {
         interval[i] = period/NUM_VELS;

@@ -7,6 +7,7 @@ from lib import command
 import time,sys,os
 import serial
 import shared
+import numpy as np
 
 from hall_helpers import *
 
@@ -17,10 +18,9 @@ def main():
     queryRobot()
     #Motor gains format:
     #  [ Kp , Ki , Kd , Kaw , Kff     ,  Kp , Ki , Kd , Kaw , Kff ]
-    #    ----------RIGHT----------        ---------_LEFT----------
-    # motorgains = [1800,200,100,0,0,1800,200,100,0,0] #--> original gains
-    motorgains = [1800,200,100,0,0,0,0,0,0,3000] #--> torque ripple testing
-    # motorgains = [0,0,200,0,0,0,0,200,0,0] --> weak controller gains
+    #    ----------LEFT----------        ---------_RIGHT----------
+    # [1800,200,100,0,0,1800,200,100,0,0] --> original gains
+    motorgains = [0,0,200,0,0,0,0,200,0,0]
     duration = 500
     rightFreq = 0
     leftFreq = 0
@@ -36,8 +36,7 @@ def main():
     strideFreq = 5
     phase = 0x8000      # Alternating tripod
     useFlag = 0
-    deltas = [.25, 0.25, 0.25, 0.125, 0.125, 0.5] #original deltas
-    # deltas = [0x4000,0x4000,0x4000,0x4000]
+    deltas = [.25, 0.25, 0.25, 0.125, 0.125, 0.5]
 
     manParams = manueverParams(leadIn, leadOut, strideFreq, phase, useFlag, deltas)
 
@@ -73,10 +72,51 @@ def main():
         if manParams.useFlag == True:
             runManeuver(params, manParams)
         else:
+            # DuCy = 2000
+            # xb_send(0, command.SET_PHASE, pack('l', params.phase))
+            # time.sleep(0.01)
+            # xb_send(0, command.START_TIMED_RUN, pack('h',params.duration))
+            # xb_send(0, command.SET_MOTOR_MODE, pack('2h',DuCy,DuCy))
+            # time.sleep(params.duration / 1000.0*3/11)
+            # xb_send(0, command.SET_MOTOR_MODE, pack('2h',0,0))
+            # time.sleep(params.duration / 1000.0/11)
+            # xb_send(0, command.SET_MOTOR_MODE, pack('2h',DuCy,DuCy))
+            # time.sleep(params.duration / 1000.0/11*3)
+            # xb_send(0, command.SET_MOTOR_MODE, pack('2h',0,0))
+            # time.sleep(params.duration / 1000.0/11)
+            # xb_send(0, command.SET_MOTOR_MODE, pack('2h',DuCy,DuCy))
+            # time.sleep(params.duration / 1000.0/11*3)
+
+            numDC=31
+            stepDC=20
+            #baseDCR=3400
+            #baseDCL=3090
+            #DuCy = np.linspace(1700,2300,numDC)
+            DuCy = np.arange(1700,2320,stepDC)
+
             xb_send(0, command.SET_PHASE, pack('l', params.phase))
             time.sleep(0.01)
             xb_send(0, command.START_TIMED_RUN, pack('h',params.duration))
-            time.sleep(params.duration / 1000.0)
+            for i in range(0,numDC):
+                motorgains = [1800,200,100,0,0,0,0,0,0,DuCy[i]]
+                print motorgains
+                #params = hallParams(motorgains, duration, rightFreq, leftFreq, phase, telemetry, repeat)
+                setMotorGains(motorgains)
+                time.sleep(params.duration / 1000.0/numDC)
+
+                #in callbackFunc, uncomment print commands to confirm packets and stuff
+                #in akeyboard_telem, print after packing motorgains --> confirm they're integers and it can packs
+                #get python shell
+
+            # xb_send(0, command.SET_PHASE, pack('l', params.phase))
+            # time.sleep(0.01)
+            # xb_send(0, command.START_TIMED_RUN, pack('h',params.duration))
+            # for i in range(0,numDC):
+            #     xb_send(0, command.SET_MOTOR_MODE, pack('2h',baseDCR,baseDCL))
+            #     time.sleep(params.duration / 1000.0/numDC/2)
+            #     xb_send(0, command.SET_MOTOR_MODE, pack('2h',DuCy[i],baseDCL))
+            #     time.sleep(params.duration / 1000.0/numDC/2)
+
 
         if params.telemetry and query_yes_no("Save Data?"):
             flashReadback(numSamples, params, manParams)
