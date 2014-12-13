@@ -317,10 +317,20 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt(void) {
     LED_3 = 1;
     interrupt_count++;
 
+    //Telemetry save, at 1Khz
+    //TODO: Break coupling between PID module and telemetry triggering
+    if(interrupt_count == 3) {
+        telemSaveNow();
+    }
+    //Update IMU
+    //TODO: Break coupling between PID module and IMU update
     if(interrupt_count == 4) {
         mpuBeginUpdate();
         amsEncoderStartAsyncRead();
-    } else if(interrupt_count == 5) {
+    }
+    //PID controller update
+    else if(interrupt_count == 5)
+    {
         interrupt_count = 0;
 
         if (t1_ticks == T1_MAX) t1_ticks = 0;
@@ -353,7 +363,9 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt(void) {
         }
 
         if(pidObjs[0].onoff) {
-            telemGetPID();
+            //telemGetPID();
+//            telemSaveNow();
+            //TODO: Telemetry save should not be tied to the on/off state of the PID controller. Removed for now. needs to be checked. (ronf, pullin, dhaldane)
 
             // uart_tx_packet = ppoolRequestFullPacket(sizeof(telemStruct_t));
             // if(uart_tx_packet != NULL) {
@@ -445,11 +457,11 @@ void pidGetState()
 		p_state = p_state - (long)(encPos[i].offset <<2); 	// subtract offset to get zero position
 		if (i==0)
 		{
-			pidObjs[i].p_state = -p_state; //fix for encoder alignment
+			pidObjs[i].p_state = p_state; //fix for encoder alignment
 		}
 		else
 		{
-			pidObjs[i].p_state = p_state;
+			pidObjs[i].p_state = -p_state;
 		}
 		
 	}

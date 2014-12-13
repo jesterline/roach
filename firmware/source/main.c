@@ -67,8 +67,8 @@ int main() {
     cmdSetup();
 
     // Radio setup
-    radioInit(RADIO_RXPQ_MAX_SIZE, RADIO_TXPQ_MAX_SIZE, 0);
-    radioSetChannel(RADIO_MY_CHAN);
+    radioInit(RADIO_RXPQ_MAX_SIZE, RADIO_TXPQ_MAX_SIZE);
+    radioSetChannel(RADIO_CHANNEL);
     radioSetSrcAddr(RADIO_SRC_ADDR);
     radioSetSrcPanID(RADIO_PAN_ID);
 
@@ -79,9 +79,9 @@ int main() {
     // Need delay for encoders to be ready
     delay_ms(100);
     amsEncoderSetup();
-    mpuSetup(1);
+    mpuSetup();
     tiHSetup();
-    dfmemSetup(0);
+    dfmemSetup();
     telemSetup();
     adcSetup();
     pidSetup();
