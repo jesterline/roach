@@ -324,7 +324,7 @@ def setupSerial():
     print "Setting up serial ..."
     try:
         shared.ser = serial.Serial(shared.BS_COMPORT, shared.BS_BAUDRATE, \
-                    timeout=3, rtscts=0)
+                    timeout=3, rtscts=1)
     except serial.serialutil.SerialException:
         print "Could not open serial port:",shared.BS_COMPORT
         print "Exiting ..."
@@ -392,7 +392,7 @@ def writeFileHeader(dataFileName, params, manParams):
     fileout.close()
 
 def eraseFlashMem(numSamples):
-    xb_send(0, command.ERASE_SECTORS, pack('h',numSamples))
+    xb_send(0, command.ERASE_SECTORS, pack('L',numSamples))
     print "Started erase, Enter to continue"
 
 def startTelemetrySave(numSamples):

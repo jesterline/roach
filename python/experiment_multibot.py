@@ -10,7 +10,7 @@ The main function will send all the setup parameters to the robots, execute defi
 from lib import command
 import time,sys,os,traceback
 import serial
-import shared
+import shared_multi as shared
 
 from velociroach import *
 
@@ -20,7 +20,7 @@ EXIT_WAIT   = False
 def main():    
     xb = setupSerial(shared.BS_COMPORT, shared.BS_BAUDRATE)
     
-    R1 = Velociroach('\x20\x52', xb)
+    R1 = Velociroach('\x21\x04', xb)
     R1.SAVE_DATA = False
                             
     #R1.RESET = False       #current roach code does not support software reset
@@ -38,7 +38,7 @@ def main():
     
     # Send robot a WHO_AM_I command, verify communications
     for r in shared.ROBOTS:
-        r.query(retries = 3)
+        r.query(retries = 8)
     
     #Verify all robots can be queried
     verifyAllQueried()  # exits on failure
@@ -49,7 +49,7 @@ def main():
     motorgains = [1800,0,100,0,0, 1800,0,100,0,0]
     #motorgains = [0,0,0,0,0 , 0,0,0,0,0]
 
-    simpleAltTripod = GaitConfig(motorgains, rightFreq=5, leftFreq=5) # Parameters can be passed into object upon construction, as done here.
+    simpleAltTripod = GaitConfig(motorgains, rightFreq=3, leftFreq=3) # Parameters can be passed into object upon construction, as done here.
     simpleAltTripod.phase = PHASE_180_DEG                             # Or set individually, as here
     simpleAltTripod.deltasLeft = [0.25, 0.25, 0.25]
     simpleAltTripod.deltasRight = [0.25, 0.25, 0.25]
@@ -59,7 +59,7 @@ def main():
     R1.setGait(simpleAltTripod)
 
     # example , 0.1s lead in + 2s run + 0.1s lead out
-    EXPERIMENT_RUN_TIME_MS     = 2000 #ms
+    EXPERIMENT_RUN_TIME_MS     = 5000 #ms
     EXPERIMENT_LEADIN_TIME_MS  = 100  #ms
     EXPERIMENT_LEADOUT_TIME_MS = 100  #ms
     
