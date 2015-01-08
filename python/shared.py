@@ -1,6 +1,6 @@
 ''' AP 1/7/15: This old style of shared.py is going to be deprecated soon. '''
 
-DEST_ADDR = '\x00\x01'
+DEST_ADDR = '\x21\x04'
 xb = []
 ser = []
 
