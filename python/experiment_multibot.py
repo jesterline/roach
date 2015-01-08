@@ -38,7 +38,7 @@ def main():
     
     # Send robot a WHO_AM_I command, verify communications
     for r in shared.ROBOTS:
-        r.query(retries = 8)
+        r.query(retries = 3)
     
     #Verify all robots can be queried
     verifyAllQueried()  # exits on failure
@@ -59,7 +59,7 @@ def main():
     R1.setGait(simpleAltTripod)
 
     # example , 0.1s lead in + 2s run + 0.1s lead out
-    EXPERIMENT_RUN_TIME_MS     = 5000 #ms
+    EXPERIMENT_RUN_TIME_MS     = 2000 #ms
     EXPERIMENT_LEADIN_TIME_MS  = 100  #ms
     EXPERIMENT_LEADOUT_TIME_MS = 100  #ms
     
