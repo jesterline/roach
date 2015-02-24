@@ -4,7 +4,8 @@ config.legScale  = 95.8738e-6;   % 16 bit to radian
 config.xlScale   = (1/4096) * 9.81;   %XL read to m/s^2 (\pm 8g range)
 config.gyroScale = (1/16.384) * (pi/180);   %Gyro read to rad/s (\pm 2000 deg/s range)
 
-robotRaw = importdata(fname);
+%robotRaw = importdata(fname); %old-style
+robotRaw = importdata(fname,',',9); %pullin-style data
 offsetVector = ones(size(robotRaw.data(:,1)));
 Robot.t = (robotRaw.data(:,1) - offsetVector .* robotRaw.data(1,1)) ./ 1e6;
 

@@ -218,7 +218,9 @@ class Velociroach:
         self.findFileName()
         self.writeFileHeader()
         fileout = open(self.dataFileName, 'a')
-        np.savetxt(fileout , np.array(self.telemtryData), self.telemFormatString, delimiter = ',')
+        self.sanData = [item for item in self.telemtryData if item != []]
+        np.savetxt(fileout , np.array(self.sanData), self.telemFormatString, delimiter = ',')
+        #np.savetxt(fileout , np.array(self.telemtryData), self.telemFormatString, delimiter = ',')
         fileout.close()
         self.clAnnounce()
         print "Telemetry data saved to", self.dataFileName
@@ -282,7 +284,7 @@ class Velociroach:
             tries = tries + 1
             time.sleep(0.3)
             
-    def setGait(self, gaitConfig):
+    def setGait(self, gaitConfig, zero_position = False):
         self.currentGait = gaitConfig
         
         self.clAnnounce()
@@ -290,7 +292,9 @@ class Velociroach:
         self.setPhase(gaitConfig.phase)
         self.setMotorGains(gaitConfig.motorgains)
         self.setVelProfile(gaitConfig) #whole object is passed in, due to several references
-        
+        if zero_position:
+            self.zeroPosition()
+
         self.clAnnounce()
         print " ------------------------------------ "
         
