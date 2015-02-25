@@ -10,6 +10,10 @@ The main function will send all the setup parameters to the robots, execute defi
 from lib import command
 import time,sys,os,traceback
 import serial
+
+# Path to imageproc-settings repo must be added
+sys.path.append(os.path.dirname("../../imageproc-settings/"))
+sys.path.append(os.path.dirname("../imageproc-settings/"))  
 import shared_multi as shared
 
 from velociroach import *
@@ -20,8 +24,8 @@ EXIT_WAIT   = False
 def main():    
     xb = setupSerial(shared.BS_COMPORT, shared.BS_BAUDRATE)
     
-    R1 = Velociroach('\x21\x04', xb)
-    R1.SAVE_DATA = False
+    R1 = Velociroach('\x20\x52', xb)
+    R1.SAVE_DATA = True
                             
     #R1.RESET = False       #current roach code does not support software reset
     
@@ -43,30 +47,23 @@ def main():
     #Verify all robots can be queried
     verifyAllQueried()  # exits on failure
     
-    #PINK VR: right and left swapped
     # Motor gains format:
     #  [ Kp , Ki , Kd , Kaw , Kff     ,  Kp , Ki , Kd , Kaw , Kff ]
     #    ----------LEFT----------        ---------_RIGHT----------
-    motorgains = [2100,150,90,0,0, 2100,150,90,0,0]
-    #motorgains = [0,0,0,0,2500 ,0,0,0,0,2500]
+    motorgains = [1800,0,100,0,0, 1800,0,100,0,0]
+    #motorgains = [0,0,0,0,0 , 0,0,0,0,0]
 
-    simpleAltTripod = GaitConfig(motorgains, rightFreq=0.25, leftFreq=0.25) # Parameters can be passed into object upon construction, as done here.
+    simpleAltTripod = GaitConfig(motorgains, rightFreq=5, leftFreq=5) # Parameters can be passed into object upon construction, as done here.
     simpleAltTripod.phase = PHASE_180_DEG                             # Or set individually, as here
     simpleAltTripod.deltasLeft = [0.25, 0.25, 0.25]
     simpleAltTripod.deltasRight = [0.25, 0.25, 0.25]
     #simpleAltTripod.deltasTime  = [0.25, 0.25, 0.25] # Not current supported by firmware; time deltas are always exactly [0.25, 0.25, 0.25, 0.25]
     
-    constSetPoint = GaitConfig(motorgains, rightFreq=5, leftFreq=.05) #freq=0.5 gives 10s at set point # Parameters can be passed into object upon construction, as done here.
-    constSetPoint.phase = PHASE_180_DEG                             # Or set individually, as here 
-    constSetPoint.deltasLeft = [0.25, 0, 0]
-    constSetPoint.deltasRight = [0.25, 0.25, 0.25]
-
     # Configure intra-stride control
-    #R1.setGait(simpleAltTripod)
     R1.setGait(simpleAltTripod)
 
     # example , 0.1s lead in + 2s run + 0.1s lead out
-    EXPERIMENT_RUN_TIME_MS     = 12000 #ms
+    EXPERIMENT_RUN_TIME_MS     = 2000 #ms
     EXPERIMENT_LEADIN_TIME_MS  = 100  #ms
     EXPERIMENT_LEADOUT_TIME_MS = 100  #ms
     
@@ -108,13 +105,9 @@ def main():
     
     if EXIT_WAIT:  #Pause for a Ctrl + C , if desired
         while True:
-            try:
-                time.sleep(0.1)
-            except KeyboardInterrupt:
-                break
+            time.sleep(0.1)
 
     print "Done"
-    xb_safe_exit(xb)
     
 #Provide a try-except over the whole main function
 # for clean exit. The Xbee module should have better
@@ -125,17 +118,11 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         print "\nRecieved Ctrl+C, exiting."
-        shared.xb.halt()
-        shared.ser.close()
     except Exception as args:
-        print "\nGeneral exception:",args
+        print "\nGeneral exception from main:\n",args,'\n'
         print "\n    ******    TRACEBACK    ******    "
         traceback.print_exc()
         print "    *****************************    \n"
         print "Attempting to exit cleanly..."
-        shared.xb.halt()
-        shared.ser.close()
-        sys.exit()
-    except serial.serialutil.SerialException:
-        shared.xb.halt()
-        shared.ser.close()
+    finally:
+        xb_safe_exit(shared.xb)

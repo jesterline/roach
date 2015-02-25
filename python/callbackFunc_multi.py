@@ -1,8 +1,10 @@
 from lib import command
 from struct import pack,unpack
-import time
-import traceback
+import time,sys,os,traceback
 
+# Path to imageproc-settings repo must be added
+sys.path.append(os.path.dirname("../../imageproc-settings/"))
+sys.path.append(os.path.dirname("../imageproc-settings/"))      # Some projects have a single-directory structure
 import shared_multi as shared
 
 #Dictionary of packet formats, for unpack()
@@ -121,7 +123,7 @@ def xbee_received(packet):
                 shared.awake = True;
         # ZERO_POS
         elif type == command.ZERO_POS:
-            print 'Hall zeros established; Previous motor positions:',
+            print 'AMS zeros established; Previous motor positions:',
             motor = unpack(pattern,data)
             print motor
             
@@ -138,6 +140,8 @@ def xbee_received(packet):
                 if r.DEST_ADDR_int == src_addr:
                     r.robot_queried = True 
 
+    except KeyboardInterrupt:
+        print "\nRecieved Ctrl+C in callbackfunc, exiting."
     except Exception as args:
         print "\nGeneral exception from callbackfunc:",args
         print "\n    ******    TRACEBACK    ******    "

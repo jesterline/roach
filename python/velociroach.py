@@ -12,6 +12,7 @@ from math import ceil,floor
 import numpy as np
 
 # TODO: check with firmware if this value is actually correct
+PHASE_0_DEG   = 0x0000
 PHASE_180_DEG = 0x8000
 
 class GaitConfig:
@@ -218,9 +219,10 @@ class Velociroach:
         self.findFileName()
         self.writeFileHeader()
         fileout = open(self.dataFileName, 'a')
-        self.sanData = [item for item in self.telemtryData if item != []]
-        np.savetxt(fileout , np.array(self.sanData), self.telemFormatString, delimiter = ',')
-        #np.savetxt(fileout , np.array(self.telemtryData), self.telemFormatString, delimiter = ',')
+        
+        sanitized = [item for item in self.telemtryData if item!= []];
+        
+        np.savetxt(fileout , np.array(sanitized), self.telemFormatString, delimiter = ',')
         fileout.close()
         self.clAnnounce()
         print "Telemetry data saved to", self.dataFileName
@@ -294,11 +296,13 @@ class Velociroach:
         self.setVelProfile(gaitConfig) #whole object is passed in, due to several references
         if zero_position:
             self.zeroPosition()
-
+        
         self.clAnnounce()
         print " ------------------------------------ "
         
-        
+    def zeroPosition(self):
+        self.tx( 0, command.ZERO_POS, 'zero') #actual data sent in packet is not relevant
+        time.sleep(0.1) #built-in holdoff, since reset apparently takes > 50ms
         
 ########## Helper functions #################
 #TODO: find a home for these? Possibly in BaseStation class (pullin, abuchan)
@@ -322,11 +326,11 @@ def xb_safe_exit(xb):
     print "Halting xb"
     if xb is not None:
         xb.halt()
-    else:
-        shared.xb.halt()
         
     print "Closing serial"
-    shared.ser.close()
+    if xb.serial is not None:
+        xb.serial.close()
+        
     print "Exiting..."
     sys.exit(1)
     
