@@ -31,10 +31,13 @@ Robot.vBatt = robotRaw.data(:,16);
 %Compute Power
 vref = 3.3;             % MAKE SURE THESE ARE RIGHT
 vdivide = 3.7/2.7;
+vgain = 15.0/47.9; %%?? not sure, got from ipython, 5/11/15
 vbatt = robotRaw.data(:,16); %last column of data is batt voltage in adc counts
 vbatt = vbatt*vdivide*vref/1023; %configert battery voltage to Volts
-emf(:,1) = vdivide*vref/1023*(-robotRaw.data(:,14));
-emf(:,2) = vdivide*vref/1023*(-robotRaw.data(:,15));        
+% emf(:,1) = vdivide*vref/1023*(-robotRaw.data(:,14));
+% emf(:,2) = vdivide*vref/1023*(-robotRaw.data(:,15));
+emf(:,1) = vref/1023/vgain*(robotRaw.data(:,14)); %more from ipython 5/11/15
+emf(:,2) = vref/1023/vgain*(robotRaw.data(:,15)); %more from ipython 5/11/15
 pwm(:,1) = -robotRaw.data(:,6)/4000;
 pwm(:,2) = -robotRaw.data(:,7)/4000;    
 pwm(find(pwm(:,1) < -4000 )) = -4000;
@@ -47,6 +50,10 @@ motori(:,2) = (vbatt - emf(:,2))/R;
 
 motorp(:,1) = motori(:,1).*vbatt.*pwm(:,1);
 motorp(:,2) = motori(:,2).*vbatt.*pwm(:,2);
+
+Robot.vBatt = vbatt; %again, got from ipython, added 5/11/15
+Robot.BEMFR=emf(:,1);
+Robot.BEMFL=emf(:,2);
 
 Robot.motorVoltage(:,1) = vbatt.*pwm(:,1);
 Robot.motorVoltage(:,2) = vbatt.*pwm(:,2);

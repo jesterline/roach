@@ -1,6 +1,10 @@
 clear all
 
-Robot = pullRobot('ground_torqueVsPhase_tripod.txt'); %--> suspended 
+span=50;
+[legPos1,freq1,gyro1,torque1,t1,Robot]=getLegMovement('new_sus_data.txt',span);
+[legPos2,freq2,gyro2,torque2,t2,Robot2]=getLegMovement('Mismatched_noSprings2.txt',span);
+[legPos3,freq3,gyro3,torque3,t3,Robot3]=getLegMovement('acrylic_1R_12L.txt',span);
+
 %run, felt beats in string  and altered DC until they disappeared; L,R=1900,2374 
 t = Robot.t;
 legPosRight = Robot.legPosRight;
@@ -17,8 +21,10 @@ vBatt = Robot.vBatt;
 figure(1)
 subplot(2,1,1)
 plot(t,DCR,t,DCL)
+ylabel('Duty cycle')
 subplot(2,1,2)
 plot(t,BEMFR,t,BEMFL)
+ylabel('BEMF')
 % tStep=t(2)-t(1);
 % freqRight=diff(legPosRight)/tStep/(2*pi);
 % freqLeft=diff(legPosLeft)/tStep/(2*pi);
@@ -33,49 +39,166 @@ ttotal=ceil(length(t)/1000);
 tStep=t(2)-t(1);
 freqRight=diff(legPosRight)/tStep/(2*pi);
 freqLeft=diff(legPosLeft)/tStep/(2*pi);
-legPosRight=legPosRight-min(legPosRight);
-legPosLeft=legPosLeft-min(legPosLeft);
+legPosRight=legPosRight;
+legPosLeft=legPosLeft;
+
 figure(2)
-subplot(2,1,1)
-plot(t,legPosRight,t,legPosLeft)
-legend('Right','Left')
-xlabel('Time (s)')
-ylabel('Leg position (radians)')
-set(gca,'xtick',0:2:ttotal)
-subplot(2,1,2)
-legPosDiff=legPosRight-legPosLeft;
-plot(t,legPosDiff/max(abs(legPosDiff)),t,movingAve(mod(legPosDiff/2/pi,1),1))
-%plot(t,movingAve(mod(legPosDiff/2/pi,1),100))
-ylabel({'Left/right side leg position difference','(cycles)'})
+% subplot(2,1,1)
+% plot(t(11000:13000),legPosRight(11000:13000),t(11000:13000),legPosLeft(11000:13000))
+% pR=polyfit(t(6200:7100),legPosRight(6200:7100),2);
+% pL=polyfit(t(6200:7100),legPosLeft(6200:7100),2);
+% lpRline=pR(1)*t(6200:7100).^2+pR(2)*t(6200:7100)+pR(3);
+% lpLline=pL(1)*t(6200:7100).^2+pL(2)*t(6200:7100)+pL(3);
+% plot(t(6200:7100),legPosRight(6200:7100)-lpRline,t(6200:7100),legPosLeft(6200:7100)-lpLline)
+lpRtrend=movingAve(legPosRight,100);
+lpLtrend=movingAve(legPosLeft,100);
+lfRtrend=movingAve(freqRight,100);
+lfLtrend=movingAve(freqLeft,100);
+%plot(t,legPosRight-lpRtrend,t,legPosLeft-lpLtrend)
+gyroX=Robot.gyroX;
+rollInt=cumtrapz(t,gyroX);
+intTrend=movingAve(rollInt,200);
+% plot(t(1:3000),[legPosRight(1:3000)-legPosRight(1)
+% legPosLeft(1:3000)-legPosLeft(1)])
+
+plot(t,mod(legPosRight,2*pi),t,mod(legPosLeft,2*pi),t,...
+    legPosRight-legPosLeft-min(legPosRight-legPosLeft),'r','linewidth',2)
+xlim([0 max(t)])
+ylim([-0.1 2*pi+0.1])
+ylabel({'With springs:','Leg pos (rad)'})
+legend('Right','Left','\theta_{R}-\theta_{L}')
+
+%  plot(t,[legPosRight-legPosLeft-(legPosRight(1)-legPosLeft(1))...
+%      50*(rollInt-intTrend)])  
+ gyroX=Robot.gyroX;
+ rollInt=cumtrapz(t,gyroX);
+ intTrend=movingAve(rollInt,200);
+% [ha,h1,h2]=plotyy(t,[mod(legPosRight/2/pi,1) mod(legPosLeft/2/pi,1)],t,180/pi*(rollInt-intTrend));%mod(legPosRight/2/pi,1)-mod(legPosLeft/2/pi,1));
+% set(ha(1),'xlim',[0 max(t)],'ylim',[0 1])
+% set(ha(2),'xlim',[0 max(t)],'ylim',[-10 10])
+grid off
+% legend('Right','Left','DCR','DCL')
+% legend('Right','Left')
+% xlabel('Time (s)')
+% ylabel({'\theta (rad)'})
+%set(gca,'xtick',0:.2:ttotal)
+
+% ylim([-1 10])
+
+% subplot(2,1,2)
+%  gyroX=Robot.gyroX;
+% rollInt=cumtrapz(t,gyroX);
+% intTrend=movingAve(rollInt,200);
+% rollFilt=filter(1,[1 -.9995],gyroX);
+% plot(t,180/pi*(rollInt-intTrend),t,movingAve(180/pi*(rollInt-intTrend),50))
+% grid on
+% %set(gca,'xtick',0:.2:ttotal)
+% legend('Actual','MA')
+% ylabel('Roll (deg)')
+% xlim([0 max(t)])
+
+
+% legPosDiff=legPosRight-legPosLeft;
+% plot(t,legPosDiff/max(abs(legPosDiff)),t,movingAve(mod(legPosDiff/2/pi,1),1))
+% %plot(t,movingAve(mod(legPosDiff/2/pi,1),100))
+% ylabel({'Left/right side leg position difference','(cycles)'})
+
 % mean(legPosDiff(9000:17000))
 
-span = 150;
+BEMFRsh=BEMFR-min(BEMFR);
+BEMFR1=BEMFRsh/max(BEMFRsh);
+BEMFLsh=BEMFL-min(BEMFL);
+BEMFL1=BEMFLsh/max(BEMFLsh)+1;
+
+span = 50;
 freqRightMA=movingAve(freqRight,span);
 freqLeftMA=movingAve(freqLeft,span);
+span = 250;
+freqRightMA2=movingAve(freqRight,span);
+freqLeftMA2=movingAve(freqLeft,span);
+
 figure(3)
 subplot(2,1,1)
-plot(t(1:end-1),freqRightMA,'k',t(1:end-1),freqLeftMA,'r')
-legend('Right side','Left side')
+plot(t(1:end-1),[freqRightMA freqLeftMA])
+legend('right','left','location','southeast')
+%plot(t,legPosRight,t,legPosLeft,t,DCR*560+515)
+%legend('Phase diff.','Duty cycle','location','southeast')
+% colormap([cool(32);autumn(32)]);
+% scatter(t(1:end-1),freqRightMA,2,BEMFR1(1:end-1),'+')
+% hold on
+% scatter(t(1:end-1),freqLeftMA,2,BEMFL1(1:end-1),'x')
+% hold off
 xlabel('Time (s)')
-ylabel('Leg frequency (Hz)')
-set(gca,'xtick',0:2:ttotal)
-hold on
+ylabel('Leg frequency (Hz)');%\theta_{R}-\theta_{L} (rad)')
+% ylim([-2 4])
+xlim([12.5 14.5])%([0 max(t)])
+grid off
+% hold on
+% plot(t,DCR*10+10.9,t,DCL*10+10.9)
+% hold off
+% DCR(10000)-DCL(10000)
+% Torque1 = DCL(6500).*1.41.*(vBatt(6500)-BEMFL(6500))/3.3;
+% Torque2 = DCL(12500).*1.41.*(vBatt(12500)-BEMFL(12500))/3.3;
+% Tdiff=Torque2-Torque1
+% TorquePeak = 1.41.*(890)/3.3
+% Tpercent=(Torque2-Torque1)/TorquePeak
+%set(gca,'xtick',0:2:ttotal)
+
+
 
 gyroX=Robot.gyroX;
 gyroY=Robot.gyroY;
 gyroZ=Robot.gyroZ;
 subplot(2,1,2)
-freqDiff=movingAve(freqRightMA-freqLeftMA,200);
-plot(t(1:end-1),freqDiff)
+%  gyroX=Robot.gyroX;
+% rollInt=cumtrapz(t,gyroX);
+% intTrend=movingAve(rollInt,100);
+% rollFilt=filter(1,[1 -.9995],gyroX);
+% plot(t(11000:13000),rollInt(11000:13000)-intTrend(11000:13000))
+% grid on
+% set(gca,'xtick',0:.2:ttotal)
+% legend('x','y','z')
+% ylabel('Gyro (rad/s)')
+% xlim([11 13])
+
+% Leg/body relative motion: explains suspended sync
+workTogetherR=-freqRight.*cos(legPosRight(1:end-1)).*gyroX(1:end-1);
+workTogetherL=freqLeft.*cos(legPosLeft(1:end-1)).*gyroX(1:end-1);
+
+% plot(t(1:end-1),movingAve(workTogetherR,80),'k',...
+%     t(1:end-1),movingAve(workTogetherL,80),'r',[-10 50],[0 0],'k:')
+
+zmRollAngle=180/pi*(rollInt-intTrend); %zero mean
+%plot(t(1:end-1),freqRightMA+zmRollAngle(1:end-1))
+plot(t,mod(legPosRight/2/pi-legPosLeft/2/pi,1),'r')
+xlim([12.5 14.5])%[0 max(t)])
+grid off
+
+% freqDiff=movingAve(freqRightMA-freqLeftMA,200);
+% plot(t(1:end-1),freqDiff)
 % legend('Right','Left')
-ylabel('Leg frequency difference (Hz)')
+% ylabel({'Legs/body relative motion', '(sign only)'})
+%ylabel('FreqR+zmRollAngle')
+xlabel('Time (s)')
+ylabel('\theta_R-\theta_L (cycles)')
+ylim([0 1.3])
+%legend('Right','Left')
 % xlabel('DC (%)')
 
 figure(4)
+subplot(2,1,1)
 plot(t,gyroX,t,gyroY,t,gyroZ)
 legend('x','y','z')
 ylabel('Gyro (rad/s)')
-set(gca,'xtick',0:2:ttotal)
+xlim([0 max(t)])
+ylim([-3 3])
+%set(gca,'xtick',0:2:ttotal)
+subplot(2,1,2)
+plot(t,torque1(:,1),t,torque1(:,2))
+xlim([0 max(t)])
+ylim([-0.5 1])
+ylabel('Torque (mN*m)')
+
 
 % xlX=Robot.xlX;
 % xlY=Robot.xlY;
@@ -87,7 +210,315 @@ set(gca,'xtick',0:2:ttotal)
 
  freqLeftAve=mean(freqLeft(1000:end))
  freqRightAve=mean(freqRight(1000:end))
+ %% nice figure
+ figure(5)
+ha = tight_subplot(3,1,[.01 .03],[.1 .03],[.12 .08]);
+ axes(ha(1))
+ plot(t,(legPosRight-legPosLeft)/2/pi)
+ ylabel('\theta_{R}-\theta_{L} (cycles)')
+xlim([0 max(t)])
+ylim([-1 4])
+set(ha(1),'xticklabel',[])
+
+axes(ha(2))
+plot(t(1:end-1),freqRightMA,t(1:end-1),freqLeftMA)
+legend('Right','Left','location','southeast')
+ylabel({'Motor frequency ','(Hz)'})
+ylim([1 7])
+xlim([0 max(t)])
+set(ha(2),'xticklabel',[])
+
+axes(ha(3))
+[ha,h1,h2]=plotyy(t,torque1(:,1),t,(rollInt-intTrend)*180/pi);
+xlim([0 max(t)])
+xlabel('Time (s)')
+ylabel(ha(1),{'Right motor', 'torque (mN*m)'})
+ylabel(ha(2),'Body roll angle (degrees)')
+linkaxes(ha,'x')
+set(ha(1),'ylim',[70 165],'ycolor','k')
+set(ha(2),'ylim',[-15 15],'ycolor','r')
+set(h1,'color','k')
+set(h2,'color','r')
+
+
+%%
+%more torque vs. phase: static ground tests
+clear all
+span=25;
+[legPos1,freq1,gyro1,torque1,t1,Robot]=getLegMovement('L2to6Hz_R1400_weak.txt',span);
+rangeNo=[2000:4000];
+rangeYes=[5000:7000];
+legPhase=mod(legPos1/2/pi,1);
+gyroX=Robot.gyroX;
+rollInt=cumtrapz(t1,gyroX);
+intTrend=movingAve(rollInt,200);
+rollAngle=rollInt-intTrend;
+
+figure(5)
+subplot(2,1,1)
+plot(rollAngle(rangeNo),legPhase(rangeNo,1),'.',rollAngle(rangeNo),legPhase(rangeNo,2),'.')
+xlim([-.15 .1])
+% plot3(legPhase(rangeNo,1),freq1(rangeNo,3),rollAngle(rangeNo),'.',legPhase(rangeNo,2),freq1(rangeNo,4),rollAngle(rangeNo),'.')
+% xlim([0 2*pi])
+ylabel('Leg phase (rad)')
+ylim([0 1])
+subplot(2,1,2)
+plot(rollAngle(rangeYes),legPhase(rangeYes,1),'.',rollAngle(rangeYes),legPhase(rangeYes,2),'.')
+xlabel('Body roll (degreesish?)')
+xlim([-.15 .1])
+% plot3(legPhase(rangeYes,1),freq1(rangeYes,3),rollAngle(rangeYes),'.',legPhase(rangeYes,2),freq1(rangeYes,4),rollAngle(rangeYes),'.')
+% xlim([0 2*pi])
+% xlabel('Leg phase (rad)')
+ylabel('Leg phase (rad)')
+ylim([0 1])
+
+
+figure(6)
+subplot(2,1,1)
+colormap([copper(32);jet(32)])
+scatter(rollAngle(rangeNo),freq1(rangeNo,3),4,legPhase(rangeNo,1))
+hold on
+scatter(rollAngle(rangeNo),freq1(rangeNo,4),4,legPhase(rangeNo,2)+1)
+hold off
+ylabel('Leg frequency (rad/s)')
+subplot(2,1,2)
+scatter(rollAngle(rangeYes),freq1(rangeYes,3),4,legPhase(rangeYes,1))
+hold on
+scatter(rollAngle(rangeYes),freq1(rangeYes,4),4,legPhase(rangeYes,2)+1)
+hold off
+ylabel('Leg frequency (rad/s)')
+xlabel('Body roll')
+
+rangeAll=1:21000;
+rollAngle(rangeAll)
+figure(7)
+colormap([jet(64)])
+% colormap([copper(32);jet(32)])
+scatter(t1(rangeAll),legPhase(rangeAll,2),4,'k')%+range(rollAngle(rangeAll)))
+hold on
+scatter(t1(rangeAll),legPhase(rangeAll,1),4,rollAngle(rangeAll),'filled')
+plot(t1(1:end-1),freq1(:,3:4)/max(freq1(:,3))+1.2,t1,rollAngle/2/max(abs(rollAngle))+1.6,'r')
+hold off
+xlim([0 max(t1)])
+grid on
+
+j=1;
+k=1;
+for i=1:length(t1)
+    if legPhase(i,1)<.8 && legPhase(i,1)>.7
+        contactRollR(j)=rollAngle(i);
+        tContactR(j)=t1(i);
+        j=j+1;
+    end
+    if legPhase(i,2)<.8 && legPhase(i,2)>.7
+        contactRollL(k)=rollAngle(i);
+        tContactL(k)=t1(i);
+        k=k+1;
+    end
+end
+length(tContactR)
+length(tContactL)
+x=linspace(0,max(t1),5000);
+linCRR=interp1(tContactR,movingAve(contactRollR,50),x);
+linCRL=interp1(tContactL,movingAve(contactRollL,50),x);
+figure(8)
+subplot(2,1,1)
+plot(tContactR,movingAve(contactRollR,50),'.-',tContactL,movingAve(contactRollL,50),'.-')
+% plot(tContactR,contactRollR,'.-',tContactL,contactRollL,'.-')
+subplot(2,1,2)
+plot(x,linCRR-linCRL)
+%%
+%figures for lab meeting 5/1
+clear all
+span=25;
+[legPos1,freq1,gyro1,torque1,t1,Robot]=getLegMovement('L3to5Hz_R1400_weak.txt',span);
+legPhase=mod(legPos1/2/pi,1);
+gyroX=Robot.gyroX;
+rollInt=cumtrapz(t1,gyroX);
+intTrend=movingAve(rollInt,200);
+rollAngle=rollInt-intTrend;
+
+figure(7)
+ha = tight_subplot(2,1,[.01 .03],[.1 .03],[.12 .08]);
+axes(ha(1))
+[haxes,h1,h2]=plotyy(t1(1:end-1),freq1(:,3:4),t1,rollAngle*180/pi);
+set(h1(2),'color','k')
+set(h1(1),'linewidth',2)
+set(h2,'color','r','linestyle','--','linewidth',2)
+linkaxes(haxes,'x')
+set(haxes(1),'ylim',[0 10])
+set(haxes(2),'ycolor','k','ylim',[-10 10])
+xlim([13 15])
+ylabel(haxes(1),'Leg frequency (Hz)')
+ylabel(haxes(2),'Roll angle (degrees)')
+hl=legend('$\dot{\theta}_{R}$','$\dot{\theta}_{L}$','Roll');
+set(hl,'Interpreter','latex')
+set(haxes,'xticklabel',[])
+
+axes(ha(2))
+colormap([cool(64)])
+% colormap([copper(32);jet(32)])
+scatter(t1,legPhase(:,2),3,'k','filled')%+range(rollAngle(rangeAll)))
+hold on
+scatter(t1,legPhase(:,1),4,rollAngle*180/pi,'filled')
+hold off
+xlim([13 15])
+grid on
+ylabel('Leg position within cycle')
+xlabel('Time (s)')
+legend('Left','Right')
+
+span2=100;
+freqRMA=movingAve(freq1(:,1),span2);
+freqLMA=movingAve(freq1(:,2),span2);
+figure(8)
+ha2 = tight_subplot(2,1,[.01 .03],[.1 .03],[.12 .08]);
+axes(ha2(1))
+plot(t1,(legPos1(:,1)-legPos1(:,2))/2/pi,'r')
+xlim([0 max(t1)])
+ylabel({'Difference in leg', 'position (cycles)'})
+set(haxes,'xticklabel',[])
+
+axes(ha2(2))
+plot(t1(1:end-1),freqRMA,t1(1:end-1),freqLMA,'k')
+xlim([0 max(t1)])
+xlabel('Time (s)')
+ylabel({'Leg frequency','(moving ave.)(Hz)'})
+legend('Right','Left','location','southeast')
+
+%%
+%run above cell first
+span2=50;
+freqRMA=movingAve(freq1(:,1),span2);
+freqLMA=movingAve(freq1(:,2),span2);
+
+figure(9)
+rangeS=4800:5800;
+rangeU=6000:7000;
+subplot(2,1,1)
+plot(legPhase(rangeU,1),rollAngle(rangeU)*180/pi,'.',legPhase(rangeU,2),rollAngle(rangeU)*180/pi,'.',...
+    legPhase(rangeU,1),freqRMA(rangeU)+5,'c.',legPhase(rangeU,2),freqLMA(rangeU)+5,'g.')
+ylim([-8 10])
+ylabel({'Unsynchronized','Roll angle (degrees)'})
+legend('Right (constant PWM)','Left (controlled)')
+subplot(2,1,2)
+hold on
+plot(legPhase(rangeS,1),rollAngle(rangeS)*180/pi,'.',legPhase(rangeS,2),rollAngle(rangeS)*180/pi,'.',...
+    legPhase(rangeS,1),freqRMA(rangeS)+5,'c.',legPhase(rangeS,2),freqLMA(rangeS)+5,'g.')
+ylim([-8 10])
+ylabel({'Synchronized','Roll angle (degrees)'})
+xlabel('Leg phase')
+
+%%
+%MORE torque vs phase 4/21/15
+span=50;
+[legPos,freq,gyro,torque,t,Robot]=getLegMovement('L3to5Hz_R1400_weak.txt',span);
+legPhase=mod(legPos/2/pi,1);
+gyroX=Robot.gyroX;
+rollInt=cumtrapz(t,gyroX);
+intTrend=movingAve(rollInt,200);
+rollAngle=(rollInt-intTrend)*180/pi;
+
+range1=3400:4400; %1
+range2=7000:8000; %2
+range3=10000:11000; %3
+range4=15000:16000; %4
+range5=19000:20000; %5
+figure(6)
+subplot(5,1,1)
+[ax1 h11 h21]=plotyy(legPhase(range1,:),freq(range1,3:4),legPhase(range1,:),[rollAngle(range1) rollAngle(range1)]);
+set(ax1(1),'ylim',[-2 9])
+set(ax1(2),'ylim',[-10 20],'ycolor','k')
+set(h11,'linestyle','none','marker','.')
+set(h21(1),'linestyle','none','marker','.','color','c')
+set(h21(2),'linestyle','none','marker','.','color','g')
+
+subplot(5,1,2)
+[ax2 h12 h22]=plotyy(legPhase(range2,:),freq(range2,3:4),legPhase(range2,:),[rollAngle(range2) rollAngle(range2)]);
+set(ax2(1),'ylim',[-2 9])
+set(ax2(2),'ylim',[-10 20],'ycolor','k')
+set(h12,'linestyle','none','marker','.')
+set(h22(1),'linestyle','none','marker','.','color','c')
+set(h22(2),'linestyle','none','marker','.','color','g')
+
+subplot(5,1,3)
+[ax3 h13 h23]=plotyy(legPhase(range3,:),freq(range3,3:4),legPhase(range3,:),[rollAngle(range3) rollAngle(range3)]);
+set(ax3(1),'ylim',[-2 9])
+set(ax3(2),'ylim',[-10 20],'ycolor','k')
+set(h13,'linestyle','none','marker','.')
+set(h23(1),'linestyle','none','marker','.','color','c')
+set(h23(2),'linestyle','none','marker','.','color','g')
+
+subplot(5,1,4)
+[ax4 h14 h24]=plotyy(legPhase(range4,:),freq(range4,3:4),legPhase(range4,:),[rollAngle(range4) rollAngle(range4)]);
+set(ax4(1),'ylim',[-2 9])
+set(ax4(2),'ylim',[-10 20],'ycolor','k')
+set(h14,'linestyle','none','marker','.')
+set(h24(1),'linestyle','none','marker','.','color','c')
+set(h24(2),'linestyle','none','marker','.','color','g')
+
+subplot(5,1,5)
+[ax5 h15 h25]=plotyy(legPhase(range5,:),freq(range5,3:4),legPhase(range5,:),[rollAngle(range5) rollAngle(range5)]);
+set(ax5(1),'ylim',[-2 9])
+set(ax5(2),'ylim',[-10 20],'ycolor','k')
+set(h15,'linestyle','none','marker','.')
+set(h25(1),'linestyle','none','marker','.','color','c')
+set(h25(2),'linestyle','none','marker','.','color','g')
+%plot(legPhase(range5,:),freq(range5,3:4),'.')
+%ylim([1 7])
+
+%%
+%weird looking for gyro/position trends
+%must run previous cell first
+figure(5)
+t1=t(600:end-100);
+gyro0=rollInt-intTrend;
+gyro0sh=gyro0-min(gyro0);
+gyro01=gyro0sh/max(gyro0sh);
+
+ lpR0=legPosRight-lpRtrend;
+ lpR0sh=lpR0(600:end-100)-min(lpR0(600:end-100));
+ lpR01=lpR0sh/max(lpR0sh);
+ lpL0=legPosLeft-lpLtrend;
+ lpL0sh=lpL0(600:end-100)-min(lpL0(600:end-100));
+ lpL01=lpL0sh/max(lpL0sh);
  
+ lfR0=freqRight-lfRtrend;
+ lfR0sh=lfR0(600:end-99)-min(lfR0(600:end-99));
+ lfR01=lfR0sh/max(lfR0sh);
+ lfL0=freqLeft-lfLtrend;
+ lfL0sh=lfL0(600:end-99)-min(lfL0(600:end-99));
+ lfL01=lfL0sh/max(lfL0sh);
+ 
+  subplot(3,1,1)
+  length(t)
+  length(freqRightMA)
+%   plot(t1,freqRightMA(600:end-99),t1,freqLeftMA(600:end-99))
+plot(legPosRight(1:end-1),freqRightMA,legPosRight(1:end-1),freqLeftMA)
+  ylim([15 20])
+  subplot(3,1,2)
+%   plot(t1,lfR01-gyro01)
+%   ylabel('RIGHT')
+%   ylim([-1 1])
+%plot freq & roll vs position, mark every cycle
+plot(legPosRight(1:end-1),freqRight-lfRtrend,legPosRight(1:end),gyro01)
+x=0:2*pi:3500;
+hold on
+for k=1:length(x)
+    plot([x(k) x(k)],[-20 20],'k:')
+end
+hold off
+  subplot(3,1,3)
+%   plot(t1,lfL01-gyro01-(lfR01-gyro01))
+%   ylabel('LEFT')
+%   ylim([-1 1])
+plot(legPosLeft(1:end-1),freqLeft-lfLtrend,legPosLeft(1:end),gyro01)
+x=0:2*pi:3500;
+hold on
+for k=1:length(x)
+    plot([x(k) x(k)],[-20 20],'k:')
+end
+hold off
  %%
  %nice figures
  
@@ -535,25 +966,29 @@ set(h,'Visible','on');
 
 %%
 %examining torque patterns in static walking
-[legPos1,freq1,gyro1,torque1,t1,Robot1]=getLegMovement('sus_torqueVsPhase_tripod.txt',span);
-[legPos2,freq2,gyro2,torque2,t2,Robot2]=getLegMovement('ground_torqueVsPhase_tripod.txt',span);
+span=50;
+[legPos1,freq1,gyro1,torque1,t1,Robot1]=getLegMovement('sus_torqueVsPhase_tri_static.txt',span);
+[legPos2,freq2,gyro2,torque2,t2,Robot2]=getLegMovement('ground_torqueVsPhase_tri_static.txt',span);
 
 legPhase1=mod(legPos1,2*pi);
 legPhase2=mod(legPos2,2*pi);
+
 figure(1)
 
 %torque from crank
 subplot(3,1,1)
-plot(legPhase1(:,1),torque1(:,1),'.',legPhase1(:,2),torque1(:,2),'.',[0 10],[0 0],'k-')
+plot(legPhase1(:,1),torque1(:,1),'.',...
+    legPhase1(:,2),torque1(:,2),'.',[0 10],[0 0],'k-')
 title('Crank/Flexures')
-axis([0 2*pi -100 200])
+axis([0 2*pi -150 200])
 ylabel('Torque')
 
 %torque from ground+crank
 subplot(3,1,2)
-plot(legPhase2(:,1),torque2(:,1),'.',legPhase2(:,2),torque2(:,2),'.',[0 10],[0 0],'k-')
+plot(legPhase2(:,1),torque2(:,1),'.',...
+    legPhase2(:,2),torque2(:,2),'.',[0 10],[0 0],'k-')
 title('Ground + Crank/Flexures')
-axis([0 2*pi -100 200])
+axis([0 2*pi -150 200])
 ylabel('Torque')
 
 %torque from ground alone
@@ -562,6 +997,340 @@ torque3=torque2-torque1;
 subplot(3,1,3)
 plot(legPhase3(:,1),torque3(:,1),'.',legPhase3(:,2),torque3(:,2),'.',[0 10],[0 0],'k-')
 title('Ground Alone')
-axis([0 2*pi -100 200])
+axis([0 2*pi -150 200])
 ylabel('Torque')
 xlabel('Leg phase (rad)')
+
+span=50;
+[legPos1,freq1,gyro1,torque1,t1,Robot1]=getLegMovement('sus_torqueVsPhase_zero_static.txt',span);
+[legPos2,freq2,gyro2,torque2,t2,Robot2]=getLegMovement('ground_torqueVsPhase_zero_static.txt',span);
+
+legPhase1=mod(legPos1,2*pi);
+legPhase2=mod(legPos2,2*pi);
+
+figure(2)
+
+%torque from crank
+subplot(3,1,1)
+plot(legPhase1(:,1),torque1(:,1),'.',...
+    legPhase1(:,2),torque1(:,2),'.',[0 10],[0 0],'k-')
+title('Crank/Flexures')
+axis([0 2*pi -150 200])
+ylabel('Torque')
+
+%torque from ground+crank
+subplot(3,1,2)
+plot(legPhase2(:,1),torque2(:,1),'.',...
+    legPhase2(:,2),torque2(:,2),'.',[0 10],[0 0],'k-')
+title('Ground + Crank/Flexures')
+axis([0 2*pi -150 200])
+ylabel('Torque')
+
+%torque from ground alone
+legPhase3=(legPhase1+legPhase2)/2;
+torque3=torque2-torque1;
+subplot(3,1,3)
+plot(legPhase3(:,1),torque3(:,1),'.',legPhase3(:,2),torque3(:,2),'.',[0 10],[0 0],'k-')
+title('Ground Alone')
+axis([0 2*pi -150 200])
+ylabel('Torque')
+xlabel('Leg phase (rad)')
+%%
+%more torque vs phase
+
+span=50;
+[legPos1,freq1,gyro1,torque1,t1,Robot1]=getLegMovement('sus_torqueVsPhase_Rwave_2500.txt',span);
+[legPos2,freq2,gyro2,torque2,t2,Robot2]=getLegMovement('ground_torqueVsPhase_Rwave_2500.txt',span);
+
+legPhase1=mod(legPos1,2*pi);
+legPhase2=mod(legPos2,2*pi);
+DCR1=Robot1.DCR;
+DCL1=Robot1.DCL;
+DCR2=Robot2.DCR;
+DCL2=Robot2.DCL;
+
+figure(1)
+
+%torque from crank
+%plot 1/2 second raw data
+subplot(3,1,1)
+%note: right side leads
+plot(legPhase1(13500:14000,1),torque1(13500:14000,1)./DCR1(13500:14000),'.',...
+    legPhase1(13500:14000,2),torque1(13500:14000,2)./DCL1(13500:14000),'.',[0 10],[0 0],'k-')
+title('Synchronized: Crank/Flexures')
+axis([0 2*pi 200 400])
+ylabel('Torque')
+hold on
+
+%sort each side by phase
+sorterR1=[legPhase1(13500:14000,1) torque1(13500:14000,1) DCR1(13500:14000)];
+[~,I]=sort(sorterR1(:,1));
+sorterR1=sorterR1(I,:);
+lpR1sort=sorterR1(:,1);
+tR1sort=sorterR1(:,2);
+DCR1sort=sorterR1(:,3);
+sorterL1=[legPhase1(13500:14000,2) torque1(13500:14000,2) DCL1(13500:14000)];
+[~,I]=sort(sorterL1(:,1));
+sorterL1=sorterL1(I,:);
+lpL1sort=sorterL1(:,1);
+tL1sort=sorterL1(:,2);
+DCL1sort=sorterL1(:,3);
+
+%clean data (moving average)
+tR1ave=movingAve(tR1sort./DCR1sort,5);
+tL1ave=movingAve(tL1sort./DCL1sort,5);
+%vector for interpolation (want all data sets to have same sampling points)
+lp1int=linspace(0,2*pi,500);
+%remove repeated sampling points for interpolation
+[lpR1sort, ind]=unique(lpR1sort);
+tR1ave=tR1ave(ind);
+[lpL1sort, ind]=unique(lpL1sort);
+tL1ave=tL1ave(ind);
+%interpolate
+tR1int=interp1(lpR1sort,tR1ave,lp1int);
+tL1int=interp1(lpL1sort,tL1ave,lp1int);
+
+%plot sorted & interpolated data
+plot(lpR1sort,tR1ave,'c',...
+    lpL1sort,tL1ave,'g','linewidth',2)
+plot(lp1int,tR1int,'r:',lp1int,tL1int,'r:')
+hold off
+
+%torque from ground+crank
+subplot(3,1,2)
+%note: DC's matched
+plot(legPhase2(16000:16500,1),torque2(16000:16500,1)./DCR2(16000:16500),'.',...
+    legPhase2(16000:16500,2),torque2(16000:16500,2)./DCL2(16000:16500),'.',[0 10],[0 0],'k-')
+title('Ground + Crank/Flexures')
+axis([0 2*pi 200 400])
+ylabel('Torque')
+hold on
+
+sorterR2=[legPhase2(16000:16500,1) torque2(16000:16500,1) DCR2(16000:16500)];
+[~,I]=sort(sorterR2(:,1));
+sorterR2=sorterR2(I,:);
+lpR2sort=sorterR2(:,1);
+tR2sort=sorterR2(:,2);
+DCR2sort=sorterR2(:,3);
+sorterL2=[legPhase2(16000:16500,2) torque2(16000:16500,2) DCL2(16000:16500)];
+[~,I]=sort(sorterL2(:,1));
+sorterL2=sorterL2(I,:);
+lpL2sort=sorterL2(:,1);
+tL2sort=sorterL2(:,2);
+DCL2sort=sorterL2(:,3);
+
+tR2ave=movingAve(tR2sort./DCR2sort,10);
+tL2ave=movingAve(tL2sort./DCL2sort,10);
+lp2int=linspace(0,2*pi,500);
+[lpR2sort, ind]=unique(lpR2sort);
+tR2ave=tR2ave(ind);
+[lpL2sort, ind]=unique(lpL2sort);
+tL2ave=tL2ave(ind);
+tR2int=interp1(lpR2sort,tR2ave,lp2int);
+tL2int=interp1(lpL2sort,tL2ave,lp2int);
+
+plot(lpR2sort,tR2ave,'c',...
+    lpL2sort,tL2ave,'g','linewidth',2)
+plot(lp2int,tR2int,'r:',lp2int,tL2int,'r:')
+hold off
+
+%torque from ground alone
+lp3=lp2int;
+tR3=tR2int-tR1int;
+tL3=tL2int-tL1int;
+subplot(3,1,3)
+plot(lp3,tR3,'c',lp3,tL3,'g','linewidth',2)
+title('Ground Alone')
+axis([0 2*pi -50 200])
+ylabel('Torque')
+xlabel('Leg phase (rad)')
+
+
+figure(2)
+
+%torque from crank
+subplot(3,1,1)
+%note:right side lags
+plot(legPhase1(3000:3500,1),torque1(3000:3500,1)./DCR1(3000:3500),'.',...
+    legPhase1(3000:3500,2),torque1(3000:3500,2)./DCL1(3000:3500),'.',[0 10],[0 0],'k-')
+title('Non-synchronized: Crank/Flexures')
+axis([0 2*pi 200 400])
+ylabel('Torque')
+hold on
+
+sorterR4=[legPhase1(3000:3500,1) torque1(3000:3500,1) DCR1(3000:3500)];
+[~,I]=sort(sorterR4(:,1));
+sorterR4=sorterR4(I,:);
+lpR4sort=sorterR4(:,1);
+tR4sort=sorterR4(:,2);
+DCR4sort=sorterR4(:,3);
+sorterL4=[legPhase1(3000:3500,2) torque1(3000:3500,2) DCL1(3000:3500)];
+[~,I]=sort(sorterL4(:,1));
+sorterL4=sorterL4(I,:);
+lpL4sort=sorterL4(:,1);
+tL4sort=sorterL4(:,2);
+DCL4sort=sorterL4(:,3);
+
+tR4ave=movingAve(tR4sort./DCR4sort,5);
+tL4ave=movingAve(tL4sort./DCL4sort,5);
+lp4int=linspace(0,2*pi,500);
+[lpR4sort, ind]=unique(lpR4sort);
+tR4ave=tR4ave(ind);
+[lpL4sort, ind]=unique(lpL4sort);
+tL4ave=tL4ave(ind);
+tR4int=interp1(lpR4sort,tR4ave,lp4int);
+tL4int=interp1(lpL4sort,tL4ave,lp4int);
+
+plot(lpR4sort,tR4ave,'c',...
+    lpL4sort,tL4ave,'g','linewidth',2)
+plot(lp4int,tR4int,'r:',lp4int,tL4int,'r:')
+hold off
+
+%torque from ground+crank
+subplot(3,1,2)
+%note: right side lags
+plot(legPhase2(20500:21000,1),torque2(20500:21000,1)./DCR2(20500:21000),'.',...
+    legPhase2(20500:21000,2),torque2(20500:21000,2)./DCL2(20500:21000),'.',[0 10],[0 0],'k-')
+title('Ground + Crank/Flexures')
+axis([0 2*pi 200 400])
+ylabel('Torque')
+hold on
+
+sorterR5=[legPhase2(20500:21000,1) torque2(20500:21000,1) DCR2(20500:21000)];
+[~,I]=sort(sorterR5(:,1));
+sorterR5=sorterR5(I,:);
+lpR5sort=sorterR5(:,1);
+tR5sort=sorterR5(:,2);
+DCR5sort=sorterR5(:,3);
+sorterL5=[legPhase2(20500:21000,2) torque2(20500:21000,2) DCL2(20500:21000)];
+[Y,I]=sort(sorterL5(:,1));
+sorterL5=sorterL5(I,:);
+lpL5sort=sorterL5(:,1);
+tL5sort=sorterL5(:,2);
+DCL5sort=sorterL5(:,3);
+
+tR5ave=movingAve(tR5sort./DCR5sort,5);
+tL5ave=movingAve(tL5sort./DCL5sort,5);
+lp5int=linspace(0,2*pi,500);
+
+[lpR5sort, ind]=unique(lpR5sort);
+tR5ave=tR5ave(ind);
+[lpL5sort, ind]=unique(lpL5sort);
+tL5ave=tL5ave(ind);
+
+tR5int=interp1(lpR5sort,tR5ave,lp5int);
+tL5int=interp1(lpL5sort,tL5ave,lp5int);
+
+plot(lpR5sort,tR5ave,'c',...
+    lpL5sort,tL5ave,'g','linewidth',2)
+plot(lp5int,tR5int,'r:',lp5int,tL5int,'r:')
+hold off
+
+
+%torque from ground alone
+lp6=lp5int;
+tR6=tR5int-tR4int;
+tL6=tL5int-tL4int;
+subplot(3,1,3)
+plot(lp6,tR6,'c',lp6,tL6,'g','linewidth',2)
+title('Ground Alone')
+axis([0 2*pi -50 200])
+ylabel('Torque')
+xlabel('Leg phase (rad)')
+
+figure(3)
+subplot(3,1,1)
+plot(lp1int,tR1int-tR4int,'k',lp1int,tL1int-tL4int,'r')
+axis([0 2*pi -45 45])
+ylabel('\tau_{sync}-\tau_{non}')
+title('Crank/Flexures')
+subplot(3,1,2)
+plot(lp2int,tR2int-tR5int,'k',lp2int,tL2int-tL5int,'r')
+axis([0 2*pi -45 45])
+ylabel('\tau_{sync}-\tau_{non}')
+title('Ground + Crank/Flexures')
+subplot(3,1,3)
+plot(lp2int,tR3-tR6,'k',lp2int,tL3-tL6,'r')
+axis([0 2*pi -45 45])
+xlabel('Leg phase (rad)')
+ylabel('\tau_{sync}-\tau_{non}')
+title('Ground Alone')
+
+%%
+%looking at BEMF, frequency, gyro
+span=50;
+[legPos1,freq1,gyro1,torque1,t1,Robot]=getLegMovement('sus_Rwave_1850_3150.txt',span);
+%run, felt beats in string  and altered DC until they disappeared; L,R=1900,2374 
+t = Robot.t;
+legPosRight = Robot.legPosRight;
+legPosLeft = Robot.legPosLeft;
+legComRight = Robot.legComRight;
+legComLeft = Robot.legComLeft;
+DCR = Robot.DCR;
+DCL = Robot.DCL;
+BEMFR = Robot.BEMFR;
+BEMFL = Robot.BEMFL;
+vBatt = Robot.vBatt;
+roll=Robot.gyroX;
+rollInt(1)=0;
+for i=1:length(roll)-1
+    int(i)=trapz(t(i:i+1),roll(i:i+1));
+    rollInt(i+1)=rollInt(i)+int(i);
+end
+rollInt=cumtrapz(t,roll);
+pitch=Robot.gyroY;
+yaw=Robot.gyroZ;
+
+BEMFR=movingAve(BEMFR,1);
+BEMFL=movingAve(BEMFL,1);
+
+BEMFRsh=BEMFR-min(BEMFR);
+BEMFR1=BEMFRsh/max(BEMFRsh);
+BEMFLsh=BEMFL-min(BEMFL);
+BEMFL1=BEMFLsh/max(BEMFLsh)+1;
+
+torqueRsh=torque1(:,1)-min(torque1(:,1));
+torqueR1=torqueRsh/max(torqueRsh);
+torqueLsh=torque1(:,2)-min(torque1(:,2));
+torqueL1=torqueLsh/max(torqueLsh)+1;
+
+tStep=t(2)-t(1);
+freqRight=diff(legPosRight)/tStep/(2*pi);
+freqLeft=diff(legPosLeft)/tStep/(2*pi);
+span = 150;
+freqRightMA=movingAve(freqRight,span);
+freqLeftMA=movingAve(freqLeft,span);
+% figure(1)
+% subplot(2,1,1)
+% %plot(t(1:end-1),freqRightMA,'k',t(1:end-1),freqLeftMA,'r')
+% colormap([cool(32);autumn(32)]);
+% scatter(t(1:end-1),freqRightMA,2,BEMFR1(1:end-1),'+')
+% hold on
+% scatter(t(1:end-1),freqLeftMA,2,BEMFL1(1:end-1),'x')
+% plot(t,roll)
+% hold off
+% legend('Right side','Left side')
+% xlabel('Time (s)')
+% ylabel('Leg frequency (Hz)')
+% set(gca,'xtick',0:2:ttotal)
+
+figure(1)
+colormap([cool(32);autumn(32)]);
+[AX,H1,H2]=plotyy(t,rollInt,t(1:end-1),freqRightMA,@plot,@(x,y) scatter(x,y,4,BEMFR1(1:end-1)));%torqueR1(1:end-1)));
+hold(AX(2),'on')
+scatter(AX(2),t(1:end-1),freqLeftMA,4,BEMFL1(1:end-1),'filled');%torqueL1(1:end-1));
+hold(AX(1),'on')
+plot(t,DCR*15+20,'k',t,DCL*15+20,'r')
+set(AX(1),'ylim',[-5 5])
+set(AX(2),'ylim',[13 22])
+
+figure(2)
+BEMFR=movingAve(BEMFR,50);
+BEMFL=movingAve(BEMFL,50);
+plot(t,BEMFR,t,BEMFL)%,t,torque1)
+ylim([50 250])
+
+
+
+
+

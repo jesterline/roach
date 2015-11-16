@@ -417,7 +417,7 @@ void checkSwapBuff(int j){
 
  // select either back emf or backwd diff for vel est
 
-#define VEL_BEMF 1
+#define VEL_BEMF 0
 
 /* update state variables including motor position and velocity */
 

@@ -10,6 +10,10 @@ The main function will send all the setup parameters to the robots, execute defi
 from lib import command
 import time,sys,os,traceback
 import serial
+
+# Path to imageproc-settings repo must be added
+sys.path.append(os.path.dirname("../../imageproc-settings/"))
+sys.path.append(os.path.dirname("../imageproc-settings/")) 
 import shared_multi as shared
 import numpy as np
 
@@ -23,7 +27,7 @@ def main():
     
     R1 = Velociroach('\x21\x04', xb)
     R1.SAVE_DATA = True
-                            
+                        
     #R1.RESET = False       #current roach code does not support software reset
     
     shared.ROBOTS.append(R1) #This is necessary so callbackfunc can reference robots
@@ -47,12 +51,13 @@ def main():
     # Motor gains format:
     #  [ Kp , Ki , Kd , Kaw , Kff     ,  Kp , Ki , Kd , Kaw , Kff ]
     #    ----------LEFT----------        ---------_RIGHT----------
-    motorgains = [1800,200,100,0,0, 1800,200,100,0,0] #removed for multigain
+    motorgains = [1800,0,100,0,0, 1800,0,100,0,0] #removed for multigain
     #motorgains = [0,0,0,0,0 , 0,0,0,0,0]
 
     #Alternating tripod gait
-    simpleAltTripod = GaitConfig(motorgains, rightFreq=15, leftFreq=15) # Parameters can be passed into object upon construction, as done here. removed for multigain
-    simpleAltTripod.phase = PHASE_180_DEG                             # Or set individually, as here
+    simpleAltTripod = GaitConfig(motorgains, rightFreq=1, leftFreq=1) # Parameters can be passed into object upon construction, as done here. removed for multigain
+
+    simpleAltTripod.phase = 0x8000 #PHASE_180_DEG                             # Or set individually, as here
     simpleAltTripod.deltasLeft = [0.25, 0.25, 0.25]
     simpleAltTripod.deltasRight = [0.25, 0.25, 0.25]
     #simpleAltTripod.deltasTime  = [0.25, 0.25, 0.25] # Not current supported by firmware; time deltas are always exactly [0.25, 0.25, 0.25, 0.25]
@@ -67,7 +72,7 @@ def main():
     R1.setGait(simpleAltTripod) #removed for multigain
 
     # example , 0.1s lead in + 2s run + 0.1s lead out
-    EXPERIMENT_RUN_TIME_MS     = 28000 #ms
+    EXPERIMENT_RUN_TIME_MS     = 19000 #ms
     EXPERIMENT_LEADIN_TIME_MS  = 100  #ms
     EXPERIMENT_LEADOUT_TIME_MS = 100  #ms
     
@@ -96,19 +101,20 @@ def main():
     
     # Create arrays for gains to be used
     # Full range of active duty cycles
-    #numGains = 53
-    #pwmArray = np.linspace(1200,3800,numGains)
+    #numGains = 21
+    #pwmArray = np.linspace(2300,3300,numGains)
     # Various
-    #pwmArray = [3600,2100,3600,2100,3600,2100,3600,2100]
-    #numGains = len(pwmArray)
+    gainArray = [1600,2000,2400,2800,3200,3600]
+    #gainArray2 = [100,0]
+    numGains = len(gainArray)
     # Wave of duty cycles
-    numGains = 27
-    pwmArray = np.concatenate((np.linspace(2050,3350,14),np.linspace(3250,2050,13)),axis=1)
+    #numGains = 21
+    #pwmArray = np.concatenate((np.linspace(2600,3600,11),np.linspace(3500,2600,10)),axis=1)
 
     ######## Motion is initiated here! ########
     #start run with initial gains
     R1.motor_gains_set = False #workaround
-    motorgains = [0,0,0,0,pwmArray[0], 0,0,0,0,2550]
+    motorgains = [0,0,0,0,gainArray[0], 0,0,0,0,gainArray[0]]
     R1.setMotorGains(motorgains)
     R1.startTimedRun( EXPERIMENT_RUN_TIME_MS) #Faked for now, since pullin doesn't have a working VR+AMS to test with
     time.sleep(EXPERIMENT_RUN_TIME_MS / 1000.0 / numGains)
@@ -116,7 +122,7 @@ def main():
 
     for i in range(1,numGains):
         R1.motor_gains_set = False #workaround
-        motorgains = [0,0,0,0,pwmArray[i], 0,0,0,0,2550]  
+        motorgains = [0,0,0,0,gainArray[i], 0,0,0,0,gainArray[i]]  
         #motorgains = [0,0,0,0,0 , 0,0,0,0,0]
 
         # Configure intra-stride control

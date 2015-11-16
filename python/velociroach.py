@@ -235,7 +235,7 @@ class Velociroach:
         date = date + str(today.tm_hour) +':' + str(today.tm_min)+':'+str(today.tm_sec)
         fileout.write('%  Data file recorded ' + date + '\n')
 
-        fileout.write('%  Stride Frequency         = ' +repr( [ self.currentGait.leftFreq, self.currentGait.leftFreq]) + '\n')
+        fileout.write('%  Stride Frequency         = ' +repr( [ self.currentGait.rightFreq, self.currentGait.leftFreq]) + '\n')
         fileout.write('%  Lead In /Lead Out        = ' + '\n')
         fileout.write('%  Deltas (Fractional)      = ' + repr(self.currentGait.deltasLeft) + ',' + repr(self.currentGait.deltasRight) + '\n')
         fileout.write('%  Phase                    = ' + repr(self.currentGait.phase) + '\n')
